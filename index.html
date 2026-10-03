@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f1f1f1">
+<title>Stark Future Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Rock+Salt&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f1f1f1;--card:#fff;--ink:#0d0d0d;--mute:#9a9a9a;--g:#12f287;--gl:#edfdf5;--disc:#e6e6e6;--ring:#f7f7f7;--band:#a9a9a9;--mute2:#b5b5b5;--sub:#777;--line:#d3d3d3;--tk1:#9c9c9c;--tk2:#c4c4c4;--div:#eee;--mb:clamp(44px,11vw,56px);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Unbounded','Arial Black','Segoe UI',sans-serif;-webkit-user-select:none;user-select:none;transition:background .25s}
+.dash{width:100%;height:100%;padding:12px;display:flex;flex-direction:column;overflow:hidden}
+.top{background:var(--card);border-radius:22px;display:grid;grid-template-columns:1fr 1fr 1fr;height:clamp(120px,34vw,176px);position:relative;z-index:2}
+.top>div{display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:1px solid var(--div)}
+.top>div:first-child{border-left:0}
+.pill{cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35em;height:clamp(34px,10vw,52px);width:76%;border-radius:999px;border:2px solid var(--g);color:var(--g);font-weight:800;font-size:clamp(22px,7vw,40px);background:var(--gl)}
+.pill.fill{background:var(--g);color:#0d0d0d;border-color:var(--g);cursor:pointer;gap:.2em}
+.pill.fill svg{width:.42em;height:.3em;flex:none}
+.spd{font-size:clamp(52px,17vw,92px);font-weight:800;line-height:1;letter-spacing:-.02em}
+.unit{font-size:clamp(11px,3vw,15px);color:var(--mute);font-weight:500;margin-top:.45em}
+.gw{flex:1;min-height:0;overflow:hidden;margin:8px -12px -12px;position:relative;z-index:1}.gauge{display:block;width:100%;height:100%;overflow:visible}
+.gauge text{font-family:inherit}
+.menu{position:absolute;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:clamp(44px,11vw,56px);height:clamp(44px,11vw,56px);border-radius:50%;background:var(--ink);border:0;display:grid;place-items:center;cursor:pointer;z-index:3}
+.dash{position:relative}
+.menu span{display:block;width:44%;height:2px;background:var(--bg);box-shadow:0 -5px var(--bg),0 5px var(--bg)}
+.menu.on{outline:3px solid var(--g)}
+:root[data-theme="inv"]{--bg:#0d0d0d;--card:#1b1b1b;--ink:#f4f4f4;--mute:#7a7a7a;--mute2:#5c5c5c;--sub:#8a8a8a;--line:#333;--disc:#161616;--ring:#111;--band:#4a4a4a;--tk1:#777;--tk2:#444;--g:#ff2d3f;--gl:#2b0d12;--div:#2a2a2a}
+#panel{position:fixed;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--card);border-radius:18px;padding:6px;display:none;flex-direction:column;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:6;min-width:200px}
+#panel.open{display:grid;grid-template-columns:1fr 1fr}#panel{min-width:min(340px,88vw)}
+#panel button{font:600 13px 'Unbounded','Segoe UI',sans-serif;color:var(--ink);background:none;border:0;text-align:left;padding:14px 16px;border-radius:12px;cursor:pointer}
+#panel button:active{background:var(--gl)}
+#gbox,#clk{display:none;position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border-radius:16px;z-index:4;color:var(--ink)}
+body.hud #gbox{display:block}body.hud #clk{display:flex}
+#gbox{left:12px;width:clamp(120px,30vw,190px);height:clamp(52px,14vw,72px);padding:6px 8px}
+#gv{position:absolute;left:12px;top:7px;font:700 10px 'Unbounded','Segoe UI',sans-serif;color:var(--mute)}
+#clk{right:calc(24px + var(--mb));height:var(--mb);align-items:center;padding:0 18px;font:700 clamp(16px,5vw,24px) 'Unbounded','Arial Black',sans-serif}
+#panel{max-height:calc(100% - 100px);overflow:auto}
+#menu.rec:after{content:'';position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:#ff2d3f}
+#rides,#settings,#user{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px));color:var(--ink)}
+#rides.open,#settings.open,#user.open{display:block}
+.rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font:700 16px 'Unbounded',sans-serif}
+.rh button,#rClear{font:600 13px 'Unbounded','Segoe UI',sans-serif;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:11px 18px;cursor:pointer}
+#rClear{display:block;margin:16px auto 0;background:none;color:var(--mute);border:1px solid var(--line)}
+.rc{background:var(--card);border-radius:18px;padding:14px 16px;margin-bottom:10px}
+.rc h4{margin:0 0 12px;font:600 12px 'Unbounded',sans-serif;color:var(--mute)}
+.rg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px}
+.rg div{font:700 17px 'Unbounded',sans-serif}.rg small{display:block;font:500 10px 'Segoe UI',Arial,sans-serif;color:var(--mute);margin-top:4px}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}.big div{background:var(--card);border-radius:18px;padding:18px 16px;font:800 clamp(18px,5vw,26px) 'Unbounded',sans-serif;color:var(--ink)}.big small{display:block;font:600 10px 'Unbounded','Segoe UI',sans-serif;color:var(--mute);margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase}
+.empty{text-align:center;color:var(--mute);margin-top:40px;font:500 14px 'Segoe UI',Arial,sans-serif}
+body.pic{background-size:cover;background-position:center;background-attachment:fixed;--card:rgba(255,255,255,.72);--disc:rgba(235,235,235,.62);--ring:rgba(255,255,255,.25)}
+:root[data-theme="inv"] body.pic{--card:rgba(20,20,20,.7);--disc:rgba(15,15,15,.62);--ring:rgba(0,0,0,.25)}
+:root[data-theme="inv"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9)}
+.sl button{display:block;width:100%;text-align:left;font:600 13px 'Unbounded','Segoe UI',sans-serif;color:var(--ink);background:var(--card);border:0;border-radius:14px;padding:16px;margin-bottom:8px;cursor:pointer}
+.sg{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:14px;padding:10px 16px;margin-bottom:8px;font:600 13px 'Unbounded','Segoe UI',sans-serif}
+.seg{display:flex;gap:4px}.sl .seg button{width:auto;margin:0;padding:10px 14px;border-radius:999px;background:var(--bg)}.sl .seg button.a{background:var(--g);color:#0d0d0d}
+.sh{font:600 11px 'Unbounded',sans-serif;color:var(--mute);margin:18px 4px 8px}
+#mapscr{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9;background:var(--bg)}#mapscr.open{display:block}
+#map{position:absolute;top:0;left:0;right:0;bottom:0}
+#mtop{position:absolute;z-index:1000;top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px;display:flex;gap:8px}
+#mtop button{font:600 13px 'Unbounded','Segoe UI',sans-serif;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:12px 16px}
+#srch{flex:1;display:flex;gap:8px}#q{flex:1;min-width:0;border:0;border-radius:999px;padding:12px 16px;font:14px 'Segoe UI',Arial,sans-serif;background:var(--card);color:var(--ink)}
+#ninfo{display:none;position:absolute;z-index:1000;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));background:var(--card);color:var(--ink);border-radius:18px;padding:14px 16px;font:14px 'Segoe UI',Arial,sans-serif;line-height:1.5}#ninfo a{color:#2f7bff}
+#home{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:8;background:#000;color:#ddd;grid-template-rows:42% 1fr 62px}
+#home.open{display:grid}
+.hero{position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%,#1d1d1d,#000 70%);cursor:pointer;padding-top:env(safe-area-inset-top,0px);overflow:hidden}
+.hero #bikeSvg,.hero img{width:78%;max-height:68%;object-fit:contain}
+#hname{position:absolute;left:0;right:0;bottom:44px;text-align:center;font:400 clamp(18px,6.2vw,34px) 'Rock Salt','Brush Script MT',cursive;color:#fff;transform:rotate(-3deg);text-shadow:0 2px 12px #000}
+#hrider{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:16px;font:600 12px 'Unbounded',sans-serif;color:#888}
+.hbar{position:absolute;left:14px;right:14px;bottom:0;height:38px;display:flex;gap:10px;align-items:center;font:600 13px 'Unbounded',sans-serif;color:#aaa;border-top:1px solid #262626}
+.tiles{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;padding:8px;background:#0a0a0a;min-height:0}
+.tiles button{background:#1c1c1c;border:0;border-radius:6px;color:#ddd;font:700 12px 'Unbounded',sans-serif;letter-spacing:.08em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;min-height:0}
+.tiles i{display:grid;place-items:center;width:clamp(40px,min(13vw,12vh),64px);height:clamp(40px,min(13vw,12vh),64px);border-radius:50%;background:#262626}
+.tiles svg{width:52%;height:52%}
+.nav{display:flex;background:#0b0b0b;border-top:1px solid #222;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav button{flex:1;background:none;border:0;position:relative;display:grid;place-items:center;cursor:pointer}
+.nav svg{width:26px;height:26px}.nav button.a:after{content:'';position:absolute;bottom:0;left:22%;right:22%;height:3px;background:var(--g)}
+#avImg{width:96px;height:96px;border-radius:50%;background:var(--card) center/cover;margin:0 auto 16px;cursor:pointer;display:grid;place-items:center;text-align:center;color:var(--mute);font:600 10px 'Unbounded',sans-serif}
+.sl input{display:block;width:100%;border:0;border-radius:14px;padding:16px;margin-bottom:8px;background:var(--card);color:var(--ink);font:600 14px 'Segoe UI',Arial,sans-serif}
+@media (orientation:landscape){#home{grid-template-columns:42% 1fr;grid-template-rows:1fr 56px}.hero{grid-row:1/3}.nav{grid-column:2}}
+@media (orientation:landscape){:root{--mb:13vh}.top{height:46vh}.spd{font-size:25vh}.pill{height:12vh;font-size:9vh}.unit{font-size:3.4vh}.menu{width:13vh;height:13vh}}
+
+</style>
+</head>
+<body>
+<main class="dash">
+  <section class="top">
+    <div><div class="pill" id="gear">N</div></div>
+    <div><div class="spd" id="spd">0</div><div class="unit" id="uni">km/h</div></div>
+    <div><div class="pill fill" id="bat"><svg viewBox="0 0 10 7"><rect x="0" y="0" width="8" height="7" rx="1.2" fill="#0d0d0d"/><rect x="8.4" y="2" width="1.6" height="3" fill="#0d0d0d"/></svg><span id="batv">23</span></div></div>
+  </section>
+
+  <div class="gw"><svg class="gauge" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMin meet" aria-label="Speed gauge">
+    <circle cx="500" cy="450" r="452" fill="var(--ring)"/>
+    <circle cx="500" cy="450" r="372" fill="var(--disc)"/>
+    <g id="ticks"></g>
+    <path id="bandL" fill="none" stroke="var(--band)" stroke-width="13"/>
+    <path id="bandR" fill="none" stroke="var(--band)" stroke-width="13"/>
+    <path id="act" fill="none" stroke="var(--g)" stroke-width="13"/>
+    <circle cx="500" cy="22" r="4" fill="var(--tk2)"/>
+    <text x="272" y="262" font-size="15" fill="var(--sub)" font-weight="700" transform="rotate(-52 272 262)" text-anchor="middle">REG</text>
+    <text x="728" y="262" font-size="15" fill="var(--sub)" font-weight="700" transform="rotate(52 728 262)" text-anchor="middle">MAX</text>
+    <text id="lb1" font-size="20" font-weight="700" fill="var(--sub)" text-anchor="middle" dominant-baseline="middle"></text><text id="lb2" font-size="20" font-weight="700" fill="var(--sub)" text-anchor="middle" dominant-baseline="middle"></text>
+    <line x1="395" y1="258" x2="605" y2="258" stroke="#d6d6d6" stroke-width="1.5" transform="translate(0,-8)" opacity="0"/>
+    <text x="500" y="143" text-anchor="middle" font-size="40" font-weight="700" fill="var(--ink)"><tspan font-size="13" fill="var(--mute2)" dx="0">ODO </tspan><tspan id="odo" dx="12">0</tspan><tspan font-size="13" fill="var(--mute2)" dx="10" id="odou">km</tspan></text>
+    <text x="500" y="222" text-anchor="middle" font-size="76" font-weight="700" fill="var(--ink)"><tspan id="th">0</tspan><tspan font-size="34" fill="var(--mute)" dx="6">h</tspan><tspan id="tm" dx="14">00</tspan><tspan font-size="34" fill="var(--mute)" dx="6">m</tspan></text>
+    <line x1="270" y1="258" x2="730" y2="258" stroke="var(--line)" stroke-width="1.5"/>
+    <image id="logoImg" x="410" y="266" width="180" height="40" preserveAspectRatio="xMidYMid meet" style="display:none"/>
+    <text id="lbl" x="500" y="300" text-anchor="middle" font-size="19" font-weight="700" fill="var(--sub)" letter-spacing="3">STARK FUTURE</text>
+  </svg></div>
+  <div id="panel"><button id="mHome">Home</button><button id="mDash">Speedometer</button><button id="mMap">Maps</button><button id="mNav">Navigate</button><button id="mRide">Start ride</button><button id="mHist">Previous rides</button><button id="mUnit">Unit: km/h</button><button id="mSet">Settings</button></div>
+  <div id="gbox"><svg viewBox="0 0 120 40" preserveAspectRatio="none" style="width:100%;height:100%;display:block"><line x1="0" y1="39.5" x2="120" y2="39.5" stroke="var(--line)"/><polyline id="gl" fill="none" stroke="var(--g)" stroke-width="1.8" vector-effect="non-scaling-stroke" points=""/></svg><div id="gv">0.00 g</div></div>
+  <div id="rides"><div class="rh"><span>Stats</span><button id="rClose">Close</button></div><div id="rlist"></div><button id="rClear">Clear all rides</button></div>
+  <div id="home" class="open"><div class="hero" id="hero"><div id="hrider"></div><svg id="bikeSvg" viewBox="0 0 300 160"><g fill="none" stroke-linecap="round"><circle cx="60" cy="116" r="34" stroke="#444" stroke-width="7"/><circle cx="242" cy="116" r="34" stroke="#444" stroke-width="7"/><path d="M60 116 130 100M242 116 208 42M196 34 224 24" stroke="#888" stroke-width="6"/><path d="M88 68 192 50" stroke="#aaa" stroke-width="7"/><path d="M226 72 272 60" stroke="#d6212e" stroke-width="7"/></g><path d="M72 72 122 52 192 46 214 62 172 80 112 92z" fill="#d6212e"/><circle cx="142" cy="98" r="22" fill="#555"/></svg><img id="bikeImg" alt="" style="display:none"><div id="hname">My Bike</div><div class="hbar"><svg viewBox="0 0 24 12" width="30" height="15"><rect x="1" y="1" width="19" height="10" rx="2" fill="none" stroke="#bbb" stroke-width="1.5"/><rect x="21" y="4" width="2" height="4" fill="#bbb"/></svg><span id="hbat">--%</span></div></div>
+  <div class="tiles"><button id="tSpd"><i><svg viewBox="0 0 24 24"><path d="M3 17a9 9 0 1 1 18 0" fill="none" stroke="#ddd" stroke-width="2.4" stroke-linecap="round"/><path d="M12 17l4-6" stroke="#ddd" stroke-width="2.4" stroke-linecap="round"/></svg></i>SPEEDOMETER</button><button id="tMap"><i><svg viewBox="0 0 24 24"><path d="M12 2a6.5 6.5 0 0 0-6.5 6.5C5.5 14 12 22 12 22s6.5-8 6.5-13.5A6.5 6.5 0 0 0 12 2zm0 9a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill="#ddd"/></svg></i>MAPS</button><button id="tSta"><i><svg viewBox="0 0 24 24"><path d="M4 20V11h4v9zM10 20V4h4v16zM16 20v-6h4v6z" fill="#ddd"/></svg></i>STATS</button><button id="tNav"><i><svg viewBox="0 0 24 24"><path d="M12 2 20 21l-8-4.5L4 21z" fill="#ddd"/></svg></i>NAVIGATE</button></div>
+  <div class="nav"><button id="nSet"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="#777" stroke-width="2.4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.8 2.8M16.2 16.2 19 19M19 5l-2.8 2.8M7.8 16.2 5 19" stroke="#777" stroke-width="2.6"/></svg></button><button id="nHome" class="a"><svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v9h5v-6h4v6h5v-9h3z" fill="#ddd"/></svg></button><button id="nUser"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.2" fill="#777"/><path d="M4 21c0-4.5 3.6-7 8-7s8 2.5 8 7z" fill="#777"/></svg></button></div></div>
+  <div id="user"><div class="rh"><span>Rider</span><button id="uClose">Back</button></div><div class="sl"><div id="avImg"></div><input id="rn" placeholder="Your name" maxlength="20"><input id="bn" placeholder="Bike name" maxlength="16"><button id="bkP">Choose bike photo</button><button id="bkX">Remove bike photo</button><button id="avX">Remove profile photo</button></div></div>
+  <div id="settings"><div class="rh"><span>Settings</span><button id="sClose">Close</button></div><div class="sl">
+   <div class="sg"><span>Speed unit</span><div class="seg"><button id="uK">km/h</button><button id="uM">mph</button></div></div>
+   <button id="mInv">Invert colors</button><button id="mHud">Show G-force and time</button><button id="mFs">Fullscreen</button><button id="mReset">Reset odometer and trip</button>
+   <div class="sh">CUSTOMIZE WITH YOUR PHOTOS</div>
+   <button id="pBg">Choose background photo</button><button id="pBgX">Remove background photo</button><button id="pLg">Choose dial logo (replaces STARK FUTURE)</button><button id="pLgX">Remove dial logo</button>
+   <input type="file" id="pf" accept="image/*" hidden></div></div>
+  <div id="mapscr"><div id="map"></div><div id="mtop"><button id="mBack">Back</button><div id="srch"><input id="q" placeholder="Where to?" enterkeyhint="go"><button id="qGo">Go</button></div></div><div id="ninfo"></div></div>
+  <div id="clk">00:00</div>
+  <button class="menu" id="menu" aria-label="Menu"><span></span></button>
+  <div id="toast" role="status" style="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));background:#0d0d0d;color:#fff;font-size:12px;padding:10px 16px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90%;text-align:center;font-family:'Segoe UI',Arial,sans-serif;z-index:20"></div>
+</main>
+
+<script>
+(function(){
+var CX=500,CY=450,SPAN=62,MAXV=200,NS='http://www.w3.org/2000/svg';
+function P(r,a){var t=a*Math.PI/180;return[CX+r*Math.sin(t),CY-r*Math.cos(t)]}
+function arc(r,a0,a1){var s=P(r,a0),e=P(r,a1);return'M'+s[0]+' '+s[1]+'A'+r+' '+r+' 0 0 1 '+e[0]+' '+e[1]}
+var tk=document.getElementById('ticks');
+for(var i=-62;i<=62;i+=1){var big=i%10===0,mid=i%5===0;var a=P(big?428:mid?434:438,i),b=P(446,i);
+ var l=document.createElementNS(NS,'line');l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);l.setAttribute('x2',b[0]);l.setAttribute('y2',b[1]);
+ l.setAttribute('stroke',big?'var(--tk1)':'var(--tk2)');l.setAttribute('stroke-width',big?2.2:1.4);tk.appendChild(l)}
+var R=400;
+document.getElementById('bandL').setAttribute('d',arc(R,-SPAN,-.6));
+document.getElementById('bandR').setAttribute('d',arc(R,.6,SPAN));
+var act=document.getElementById('act');
+var $=function(i){return document.getElementById(i)};
+var life=(function(){var z={t:0,d:0,top:0,g:0};try{var l=JSON.parse(localStorage.getItem('sf_life'));if(l)return l;var r=JSON.parse(localStorage.getItem('sf_rides')||'[]');r.forEach(function(x){z.t+=x.dur;z.d+=x.dist;z.top=Math.max(z.top,x.top);z.g=Math.max(z.g,x.g)})}catch(e){}return z})(),UF=1,UL='km/h',DL='km',here=null,mode=1,gearS='',spd=0,odo=0,tripMin=0,bat=23,demo=false,lastT=Date.now(),gps=null;
+try{var o=parseFloat(localStorage.getItem('sf_odo2'));if(o>0)odo=o;var b=parseInt(localStorage.getItem('sf_bat'));if(b>=0&&b<=100)bat=b}catch(e){}
+function render(){
+ var v=Math.round(spd);$('spd').textContent=Math.round(spd*UF);
+ var gs=v>0?'m'+mode:'N';if(gs!==gearS){gearS=gs;if(v>0)$('gear').innerHTML='<svg viewBox="0 0 24 24" style="width:.62em;height:.62em;flex:none"><path d="M13.5 1.5 4 13.5h6.2L9 22.5l10-12.5h-6.4z" fill="#2f7bff"/></svg><span>'+mode+'</span>';else{$('gear').textContent='N';mode=1}}
+ $('batv').textContent=bat;$('hbat').textContent=hasBat?bat+'%':'--%';
+ $('odo').textContent=Math.floor(odo*UF);
+ var m=Math.floor(tripMin);$('th').textContent=Math.floor(m/60);$('tm').textContent=('0'+(m%60)).slice(-2);
+ var f=Math.min(spd/MAXV,1);
+ act.setAttribute('d',f>0.004?arc(R,.6,.6+(SPAN-.6)*f):'');
+}
+function tick(){
+ var now=Date.now(),dt=(now-lastT)/1000;lastT=now;
+ if(demo){var t=now/1000;spd=Math.max(0,Math.min(MAXV,100+90*Math.sin(t/4)-(t%1)*0))}
+ if(spd>1){odo+=spd*dt/3600;tripMin+=dt/60}
+ if(spd>1){life.t+=dt;life.d+=spd*dt/3600;life.top=Math.max(life.top,spd);life.g=Math.max(life.g,gNow)}
+ if(ride){ride.top=Math.max(ride.top,spd);ride.g=Math.max(ride.g,gNow);if(spd>1){ride.dist+=spd*dt/3600;ride.mov+=dt}}
+ render()}
+setInterval(tick,250);
+setInterval(function(){try{localStorage.setItem('sf_odo2',odo);localStorage.setItem('sf_bat',bat);localStorage.setItem('sf_life',JSON.stringify(life))}catch(e){}},5000);
+var toastT;function toast(m){var t=$('toast');t.textContent=m;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(function(){t.style.opacity=0},4000)}
+var lastPos=null;
+function hav(a,b,c,d){var r=6371000,k=Math.PI/180,x=(c-a)*k,y=(d-b)*k;var h=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*k)*Math.cos(c*k)*Math.sin(y/2)*Math.sin(y/2);return 2*r*Math.asin(Math.sqrt(h))}
+function onPos(p){
+ if(demo)return;var c=p.coords,s=c.speed;
+ if((s==null||isNaN(s))&&lastPos){var dt=(p.timestamp-lastPos.t)/1000;if(dt>0.5)s=hav(lastPos.la,lastPos.lo,c.latitude,c.longitude)/dt}
+ lastPos={t:p.timestamp,la:c.latitude,lo:c.longitude};here=[c.latitude,c.longitude];if(window.hereUpd)hereUpd();
+ var k=(s==null||isNaN(s))?0:Math.max(0,s*3.6);if(k<2)k=0;spd=k}
+function startGps(){
+ if(!navigator.geolocation){toast('GPS is not available in this browser');return}
+ navigator.geolocation.watchPosition(onPos,function(e){
+  toast(e.code===1?'Location is blocked. Allow location for this page and reload.':'Waiting for GPS signal…')},
+  {enableHighAccuracy:true,maximumAge:0,timeout:20000})}
+startGps();
+document.addEventListener('click',function once(){document.removeEventListener('click',once);if(!lastPos)startGps()});
+/* phone battery */
+var hasBat=false;
+if(navigator.getBattery){navigator.getBattery().then(function(b){hasBat=true;
+ var u=function(){bat=Math.round(b.level*100);render()};u();b.addEventListener('levelchange',u)}).catch(function(){})}
+$('gear').addEventListener('click',function(){if(spd>0){mode=mode>=5?1:mode+1;gearS='';render()}});
+$('bat').addEventListener('click',function(){if(!hasBat){toast('Battery reading is not supported on this browser');}});
+/* menu */
+var de=document.documentElement,panel=$('panel');
+function isFs(){return document.fullscreenElement||document.webkitFullscreenElement}
+function setInv(on){if(on)de.setAttribute('data-theme','inv');else de.removeAttribute('data-theme');
+ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=on?'#0d0d0d':'#f1f1f1';
+ try{localStorage.setItem('sf_inv',on?'1':'0')}catch(e){}}
+try{if(localStorage.getItem('sf_inv')==='1')setInv(true)}catch(e){}
+$('menu').addEventListener('click',function(e){e.stopPropagation();panel.classList.toggle('open');this.classList.toggle('on',panel.classList.contains('open'))});
+document.addEventListener('click',function(e){if(!panel.contains(e.target)&&e.target!==$('menu')){panel.classList.remove('open');$('menu').classList.remove('on')}});
+$('mInv').addEventListener('click',function(){setInv(!de.hasAttribute('data-theme'));panel.classList.remove('open');$('menu').classList.remove('on')});
+$('mReset').addEventListener('click',function(){odo=0;tripMin=0;render();try{localStorage.setItem('sf_odo2',0)}catch(e){}panel.classList.remove('open');$('menu').classList.remove('on');toast('Odometer and trip reset')});
+$('mFs').addEventListener('click',function(){
+ var rq=de.requestFullscreen||de.webkitRequestFullscreen,ex=document.exitFullscreen||document.webkitExitFullscreen;
+ panel.classList.remove('open');$('menu').classList.remove('on');
+ if(!rq){toast('On iPhone: Share, then Add to Home Screen for fullscreen');return}
+ if(isFs()){ex.call(document)}else{var r=rq.call(de);if(r&&r.catch)r.catch(function(){toast('Open the link directly in your browser to use fullscreen')});
+  try{screen.orientation.lock('landscape').catch(function(){})}catch(e){}}});
+function fsChg(){$('mFs').textContent=isFs()?'Exit fullscreen':'Fullscreen'}
+document.addEventListener('fullscreenchange',fsChg);document.addEventListener('webkitfullscreenchange',fsChg);
+/* demo mode: long-press the speed */
+var pt;$('spd').addEventListener('pointerdown',function(){pt=setTimeout(function(){demo=!demo;if(!demo)spd=0;toast(demo?'Demo mode on':'Demo mode off')},900)});
+['pointerup','pointerleave','pointercancel'].forEach(function(n){$('spd').addEventListener(n,function(){clearTimeout(pt)})});
+/* g-force + clock */
+var gNow=0,gArr=[],gSens=false;
+function gm(e){var a=e.acceleration,g;if(a&&a.x!=null){g=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z)/9.81}else{var b=e.accelerationIncludingGravity;if(!b||b.x==null)return;g=Math.abs(Math.sqrt(b.x*b.x+b.y*b.y+b.z*b.z)/9.81-1)}gSens=true;gNow=gNow*.7+g*.3}
+function startG(){var D=window.DeviceMotionEvent;if(!D){toast('Motion sensor not available');return}
+ if(D.requestPermission){D.requestPermission().then(function(r){if(r==='granted')window.addEventListener('devicemotion',gm);else toast('Allow motion access to see G-forces')}).catch(function(){})}else window.addEventListener('devicemotion',gm)}
+setInterval(function(){if(!document.body.classList.contains('hud'))return;gArr.push(gNow);if(gArr.length>100)gArr.shift();
+ $('gl').setAttribute('points',gArr.map(function(v,i){return(i*1.2)+','+(38-Math.min(v,1)*34)}).join(' '));$('gv').textContent=gNow.toFixed(2)+' g'},100);
+function clock(){var d=new Date();$('clk').textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+clock();setInterval(clock,5000);
+function setHud(on){document.body.classList.toggle('hud',on);$('mHud').textContent=on?'Hide G-force and time':'Show G-force and time';try{localStorage.setItem('sf_hud',on?'1':'0')}catch(e){}}
+$('mHud').addEventListener('click',function(){var on=!document.body.classList.contains('hud');setHud(on);if(on&&!gSens)startG();panel.classList.remove('open');$('menu').classList.remove('on')});
+try{if(localStorage.getItem('sf_hud')==='1'){setHud(true);if(window.DeviceMotionEvent&&!DeviceMotionEvent.requestPermission)startG()}}catch(e){}
+/* rides */
+var ride=null,rides=[];
+try{rides=JSON.parse(localStorage.getItem('sf_rides')||'[]')||[]}catch(e){rides=[]}
+try{var cur=JSON.parse(localStorage.getItem('sf_cur')||'null');if(cur&&cur.t)ride=cur}catch(e){}
+function saveRides(){try{localStorage.setItem('sf_rides',JSON.stringify(rides))}catch(e){}}
+function rideUI(){$('mRide').textContent=ride?'Stop ride':'Start ride';$('menu').classList.toggle('rec',!!ride)}
+function fmtD(sec){sec=Math.round(sec);var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),x=sec%60;return h>0?h+'h '+('0'+m).slice(-2)+'m':m+'m '+('0'+x).slice(-2)+'s'}
+setInterval(function(){try{if(ride)localStorage.setItem('sf_cur',JSON.stringify(ride));else localStorage.removeItem('sf_cur')}catch(e){}},3000);
+function closeMenu(){panel.classList.remove('open');$('menu').classList.remove('on')}
+$('mRide').addEventListener('click',function(){
+ closeMenu();
+ if(!ride){ride={t:Date.now(),top:0,g:0,dist:0,mov:0};if(!gSens)startG();toast('Ride started')}
+ else{var dur=(Date.now()-ride.t)/1000,r=ride;ride=null;try{localStorage.removeItem('sf_cur')}catch(e){}
+  if(dur<5){toast('Ride too short, not saved')}
+  else{rides.unshift({t:r.t,dur:dur,top:r.top,g:r.g,dist:r.dist,mov:r.mov,avg:r.mov>0?r.dist/(r.mov/3600):0});rides=rides.slice(0,50);saveRides();toast('Ride saved')}}
+ rideUI()});
+function showRides(){
+ var L=$('rlist');
+ if(!rides.length){L.innerHTML='<div class="empty">No rides yet. Start one from the menu.</div>'}
+ else L.innerHTML=rides.map(function(r){
+  var d=new Date(r.t).toLocaleString([], {weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  return '<div class="rc"><h4>'+d+'</h4><div class="rg">'+
+   '<div>'+fmtD(r.dur)+'<small>Duration</small></div>'+
+   '<div>'+(r.dist*UF).toFixed(2)+' '+DL+'<small>Distance</small></div>'+
+   '<div>'+fmtD(r.mov)+'<small>Moving time</small></div>'+
+   '<div>'+Math.round(r.top*UF)+' '+UL+'<small>Top speed</small></div>'+
+   '<div>'+Math.round(r.avg*UF)+' '+UL+'<small>Avg speed</small></div>'+
+   '<div>'+r.g.toFixed(2)+' g<small>Top G-force</small></div></div></div>'}).join('');
+ L.insertAdjacentHTML('afterbegin','<div class="big"><div><small>Total ride time</small>'+fmtD(life.t)+'</div><div><small>Total distance</small>'+(life.d*UF).toFixed(1)+' '+DL+'</div><div><small>Top speed</small>'+Math.round(life.top*UF)+' '+UL+'</div><div><small>Top G-force</small>'+life.g.toFixed(2)+' g</div></div>'+(rides.length?'<div class="sh">RIDES</div>':''))
+ $('rides').classList.add('open')}
+$('mHist').addEventListener('click',function(){closeMenu();showRides()});
+$('rClose').addEventListener('click',function(){$('rides').classList.remove('open')});
+$('rClear').addEventListener('click',function(){if(rides.length&&confirm('Delete all saved rides?')){rides=[];saveRides();showRides()}});
+rideUI();
+/* main menu, units, photos, maps */
+var scrs=['settings','rides','mapscr','home','user'];
+function closeAll(){scrs.forEach(function(i){$(i).classList.remove('open')});closeMenu()}
+function openScr(i){closeAll();$(i).classList.add('open')}
+function lb(){[['lb1',.5],['lb2',1]].forEach(function(a){var e=$(a[0]),pt=P(350,.6+(SPAN-.6)*a[1]);e.setAttribute('x',pt[0]);e.setAttribute('y',pt[1]);e.textContent=Math.round(MAXV*UF*a[1])})}
+function setUnit(u){UF=u==='mph'?0.621371:1;MAXV=u==='mph'?160.934:160;lb();UL=u==='mph'?'mph':'km/h';DL=u==='mph'?'mi':'km';
+ $('uni').textContent=UL;$('odou').textContent=DL;$('mUnit').textContent='Unit: '+UL;
+ $('uK').classList.toggle('a',u!=='mph');$('uM').classList.toggle('a',u==='mph');
+ try{localStorage.setItem('sf_unit',u)}catch(e){}render()}
+var un='kmh';try{un=localStorage.getItem('sf_unit')==='mph'?'mph':'kmh'}catch(e){}
+$('uK').addEventListener('click',function(){setUnit('kmh')});$('uM').addEventListener('click',function(){setUnit('mph')});
+$('mUnit').addEventListener('click',function(){setUnit(UF===1?'mph':'kmh');closeMenu()});
+$('mDash').addEventListener('click',closeAll);
+$('mSet').addEventListener('click',function(){openScr('settings')});
+$('sClose').addEventListener('click',closeAll);
+setUnit(un);
+var pt2='';
+function pick(t){pt2=t;$('pf').value='';$('pf').click()}
+function applyPics(){applyHome();var bg=null,lg=null;try{bg=localStorage.getItem('sf_bg');lg=localStorage.getItem('sf_lg')}catch(e){}
+ document.body.classList.toggle('pic',!!bg);document.body.style.backgroundImage=bg?'url('+bg+')':'';
+ var li=$('logoImg');if(lg){li.setAttribute('href',lg);li.style.display='';$('lbl').style.display='none'}else{li.style.display='none';$('lbl').style.display=''}}
+$('pBg').addEventListener('click',function(){pick('bg')});$('pLg').addEventListener('click',function(){pick('lg')});
+$('pBgX').addEventListener('click',function(){try{localStorage.removeItem('sf_bg')}catch(e){}applyPics()});
+$('pLgX').addEventListener('click',function(){try{localStorage.removeItem('sf_lg')}catch(e){}applyPics()});
+$('pf').addEventListener('change',function(){var f=this.files[0];if(!f)return;var im=new Image(),t=pt2;
+ im.onload=function(){var mx={bg:1280,lg:400,bike:900,av:256}[t],k=Math.min(1,mx/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+  c.getContext('2d').drawImage(im,0,0,c.width,c.height);var d=c.toDataURL((t==='lg'||(t==='bike'&&f.type==='image/png'))?'image/png':'image/jpeg',.85);
+  try{localStorage.setItem('sf_'+t,d);applyPics();toast('Photo applied')}catch(e){toast('Photo too large to save. Try a smaller one.')}};
+ im.onerror=function(){toast('Could not read that image')};im.src=URL.createObjectURL(f)});
+applyPics();
+/* maps + navigate */
+var map=null,mk=null,route=null,steps=[],si=0,dest=null,tot=null;
+function fd(m){if(UF===1)return m<1000?Math.round(m)+' m':(m/1000).toFixed(1)+' km';var mi=m/1609.34;return mi<0.2?Math.round(m*3.281)+' ft':mi.toFixed(1)+' mi'}
+function instr(st){var m=st.maneuver,t=m.type,d=m.modifier||'',n=st.name?' onto '+st.name:'';
+ if(t==='depart')return 'Head '+d+n;if(t==='arrive')return 'Arrive at destination';if(t==='roundabout'||t==='rotary')return 'Take the roundabout'+n;
+ if(t==='continue'||d==='straight')return 'Continue straight'+n;return 'Turn '+d+n}
+function navStep(){var n=$('ninfo');if(!steps.length||!here||!dest)return;
+ while(si<steps.length-1&&hav(here[0],here[1],steps[si+1].maneuver.location[1],steps[si+1].maneuver.location[0])<30)si++;
+ var nx=steps[Math.min(si+1,steps.length-1)],dd=hav(here[0],here[1],nx.maneuver.location[1],nx.maneuver.location[0]);
+ n.innerHTML='<b>'+(si>=steps.length-1?'You have arrived':fd(dd)+' · '+instr(nx))+'</b><br><small>Route '+fd(tot.d)+' · '+Math.round(tot.t/60)+' min</small><br><a href="https://www.google.com/maps/dir/?api=1&destination='+dest[0]+','+dest[1]+'&travelmode=driving" target="_blank" rel="noopener">Open in Google Maps</a>'}
+window.hereUpd=function(){if(map&&mk&&here){if(!map.hasLayer(mk))mk.addTo(map);mk.setLatLng(here);if(!route&&$('mapscr').classList.contains('open'))map.panTo(here)}navStep()};
+function openMap(nav){openScr('mapscr');$('srch').style.display=nav?'flex':'none';if(!nav)$('ninfo').style.display='none';else if(route)$('ninfo').style.display='block';
+ if(typeof L==='undefined'){toast('Map failed to load. Check your internet connection.');return}
+ if(!map){map=L.map('map',{zoomControl:false}).setView(here||[51.5,-0.12],here?16:4);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  mk=L.circleMarker([0,0],{radius:9,color:'#fff',weight:3,fillColor:'#2f7bff',fillOpacity:1})}
+ if(here){mk.setLatLng(here);if(!map.hasLayer(mk))mk.addTo(map);if(!route)map.setView(here,16)}else toast('Waiting for GPS…');
+ setTimeout(function(){map.invalidateSize()},60)}
+$('mMap').addEventListener('click',function(){openMap(false)});$('mNav').addEventListener('click',function(){openMap(true)});
+$('mBack').addEventListener('click',closeAll);
+function go(){var q=$('q').value.trim();if(!q)return;if(!here){toast('Waiting for GPS…');return}
+ var n=$('ninfo');n.style.display='block';n.textContent='Searching…';
+ fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(a){if(!a.length)throw 0;dest=[+a[0].lat,+a[0].lon];
+  return fetch('https://router.project-osrm.org/route/v1/driving/'+here[1]+','+here[0]+';'+dest[1]+','+dest[0]+'?overview=full&geometries=geojson&steps=true')}).then(function(r){return r.json()}).then(function(j){
+  var rt=j.routes&&j.routes[0];if(!rt)throw 0;if(route)map.removeLayer(route);
+  route=L.polyline(rt.geometry.coordinates.map(function(c){return[c[1],c[0]]}),{color:'#2f7bff',weight:6}).addTo(map);map.fitBounds(route.getBounds(),{padding:[70,70]});
+  steps=rt.legs[0].steps;si=0;tot={d:rt.distance,t:rt.duration};navStep()}).catch(function(){n.textContent='Could not find a route. Try a more specific address.'})}
+$('qGo').addEventListener('click',go);$('q').addEventListener('keydown',function(e){if(e.key==='Enter')go()});
+/* home screen */
+function gk(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function sk(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function applyHome(){var bk=gk('sf_bike'),av=gk('sf_av');
+ $('bikeImg').style.display=bk?'':'none';if(bk)$('bikeImg').src=bk;$('bikeSvg').style.display=bk?'none':'';
+ $('avImg').style.backgroundImage=av?'url('+av+')':'';$('avImg').textContent=av?'':'Tap to add photo';
+ $('hname').textContent=(gk('sf_bn')||'My Bike');$('hrider').textContent=gk('sf_rn')||''}
+$('rn').value=gk('sf_rn')||'';$('bn').value=gk('sf_bn')||'';
+$('rn').addEventListener('input',function(){sk('sf_rn',this.value);applyHome()});
+$('bn').addEventListener('input',function(){sk('sf_bn',this.value);applyHome()});
+$('hero').addEventListener('click',function(){pick('bike')});
+$('avImg').addEventListener('click',function(){pick('av')});
+$('bkP').addEventListener('click',function(){pick('bike')});
+$('bkX').addEventListener('click',function(){try{localStorage.removeItem('sf_bike')}catch(e){}applyPics()});
+$('avX').addEventListener('click',function(){try{localStorage.removeItem('sf_av')}catch(e){}applyPics()});
+function toHome(){openScr('home')}
+['sClose','mBack','rClose','uClose'].forEach(function(i){$(i).addEventListener('click',toHome)});
+$('mHome').addEventListener('click',toHome);$('nHome').addEventListener('click',toHome);
+$('tSpd').addEventListener('click',closeAll);$('tMap').addEventListener('click',function(){openMap(false)});$('tNav').addEventListener('click',function(){openMap(true)});
+$('tSta').addEventListener('click',function(){closeAll();showRides()});
+$('nSet').addEventListener('click',function(){openScr('settings')});$('nUser').addEventListener('click',function(){openScr('user')});
+applyHome();openScr('home');
+if(window.DeviceMotionEvent&&!DeviceMotionEvent.requestPermission)startG();
+document.addEventListener('click',function f(){document.removeEventListener('click',f);if(!gSens)startG()});
+if(navigator.wakeLock){navigator.wakeLock.request('screen').catch(function(){})}
+render();
+})();
+</script>
+</body>
+</html>
